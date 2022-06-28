@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>IRC</title>
+    <link href="../static/jquery.cssemoticons.css" media="screen" rel="stylesheet" type="text/css" />
+    <script src="../static/jquery-1.4.2.min.js" type="text/javascript"></script>
+    <script src="../static/jquery.cssemoticons.js" type="text/javascript"></script>
+</head>
+<body bgcolor=#333333 onload="randomizeColor()">
+<div id="messages" style="height: 600px; width: 600px; background-color:#999999;overflow-y: scroll">
+
+</div>
+<form id="form" style="width: 600px">
+    <input type="text" name="uinput" id="inputarea" autofocus autocomplete="off" placeholder="Najpierw podaj nick">
+    <button type="submit" id="bruhtton">Podaj nick</button>
+</form>
+<button type = "button" id="autoscrollbutton" onclick="autoscrollButton()">Wyłącz autoscroll</button>
+</body>
+<script>
+    var newestMessage = {}
+    var nick = undefined
+    var color = "#555555"
+    var autoscroll = true
+
+    async function request(address, method, body={}){
+        console.log(body)
+        if (['GET', 'HEAD'].includes(method)){
+            let response = await fetch(address, {
+                method: method,
+                headers: {
+                'Content-Type': 'application/json;charset=utf-8'
+                },
+            });
+            console.log(response)
+            return await response.json();
+        }
+        else{
+            let response = await fetch(address, {
+                method: method,
+                headers: {
+                'Content-Type': 'application/json;charset=utf-8'
+                },
+                body: JSON.stringify(body)
+            });
+            return new Promise(resolve => {
+                resolve(response.json());
+            });
+        }
+    }
+
+    document.getElementById("form").addEventListener("submit", async function(event) {
+        event.preventDefault()
+        let x = document.getElementById("inputarea")
+        console.log(x)
+        console.log(nick)
+
+        if(nick !== undefined && nick !== "") {
+            if (x.value == "/color"){
+                console.log("Kolorek")
+                let newColor = prompt("Podaj kolorek(# + kolorek w HEX) lub wpisz random")
+                changeColor(newColor)
+            }
+            else if (x.value == "/nick"){
+                console.log("Nick")
+                let newNick = prompt("Podaj nick")
+                while(newNick.length>20){
+                    window.alert("Nick Może mieć max 20 znaków")
+                    newNick = prompt("Podaj nick")
+                }
+                changeNick(newNick)
+            }
+            else if (x.value == "/quit"){
+                quitChat()
+            }
+            else if(x.value==""){}
+            else {
+                await request('/printMessage', 'POST', {
+                    'color': color,
+                    'msg': x.value,
+                    'nick': nick +":",
+                    'time': Date.now()
+                })
+            }
+        }
+        else if(nick === undefined || nick === ""){
+            if (x.value.length > 20){
+                window.alert("Nick Może mieć max 20 znaków")
+            }
+            else {
+                nick = x.value
+                console.log(nick)
+                x.removeAttribute("placeholder")
+                let result = await request("/getLatest", "POST")
+                newestMessage = result.huizong
+                await request('/printMessage', 'POST', {
+                    'color': "#ff0000",
+                    'msg': "^_^ ^_^ ^_^",
+                    'nick': "[SERVER]: " + nick+" joined the chat",
+                    'time': Date.now(),
+                    'messagecolor': "#000000"
+                })
+                document.getElementById("bruhtton").innerText="Wyślij"
+                whileLoopMasterRace()
+            }
+        }
+        document.getElementById("inputarea").value = ''
+        document.getElementById("inputarea").autofocus = true
+    })
+    function addMessage(message){
+        let el = document.getElementById("messages")
+        let p = document.createElement("p")
+        let span1 = document.createElement("span")
+        let span2 = document.createElement("span")
+        span1.style.float = "left"
+        span2.classList.add("texts")
+        span1.innerText = message.time + " - " + message.nick
+        span1.innerHTML += "&nbsp;"
+        span1.style.color = message.color
+        span2.innerText = message.msg
+        span2.style.wordWrap="break-word"
+        try{
+        span2.style.color = message.messagecolor
+        }
+        catch (err){}
+        p.appendChild(span1)
+        p.appendChild(span2)
+        el.appendChild(p)
+        $('.texts').emoticonize();
+    }
+    document.getElementById("inputarea").addEventListener("keypress", function(event){
+        if(event.keyCode === 13){
+            event.preventDefault();
+            document.getElementById("bruhtton").click();
+        }
+    })
+    async function whileLoopMasterRace(){
+        while(nick){
+            let response = await request("/poll", "POST", newestMessage)
+            console.log("response: ", response)
+            if (response.msg){
+                newestMessage = response.msg
+                addMessage(response.msg)
+                let elementt = document.getElementById('messages');
+                if (autoscroll){
+                    elementt.scrollTop = elementt.scrollHeight;
+                }
+            }
+        }
+    }
+    function changeColor(newColor){
+        if(newColor=="random"){
+            randomizeColor()
+        }
+        else {
+            color = newColor
+        }
+    }
+    function changeNick(newNick){
+        nick = newNick
+    }
+    function quitChat(){
+        nick = ""
+    }
+    function randomizeColor(){
+        colorVar = "#"
+        for(i=0;i<6;i++) {
+            colorComponent = Math.floor(Math.random() * (15 - 1)) + 1
+            if(colorComponent<10){
+                colorVar = colorVar + colorComponent.toString()
+            }
+            else if(colorComponent==10){
+                colorVar = colorVar + "a"
+            }
+            else if(colorComponent==11){
+                colorVar = colorVar + "b"
+            }
+            else if(colorComponent==12){
+                colorVar = colorVar + "c"
+            }
+            else if(colorComponent==13){
+                colorVar = colorVar + "d"
+            }
+            else if(colorComponent==14){
+                colorVar = colorVar + "e"
+            }
+            else if(colorComponent==15){
+                colorVar = colorVar + "f"
+            }
+        }
+        color = colorVar
+        console.log(color)
+    }
+    function autoscrollButton(){
+        asb = document.getElementById("autoscrollbutton")
+        if (autoscroll){
+            autoscroll = false
+            asb.innerText = "Włącz autoscroll"
+        }
+        else{
+            autoscroll = true
+            asb.innerText = "Wyłącz autoscroll"
+        }
+    }
+
+</script>
+</html>
