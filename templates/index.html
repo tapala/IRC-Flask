@@ -13,7 +13,7 @@
 </div>
 <form id="form" style="width: 600px">
     <input type="text" name="uinput" id="inputarea" autofocus autocomplete="off" placeholder="Najpierw podaj nick">
-    <button type="submit" id="bruhtton">Podaj nick</button>
+    <button type="submit" id="sendButton">Podaj nick</button>
 </form>
 <button type = "button" id="autoscrollbutton" onclick="autoscrollButton()">Wyłącz autoscroll</button>
 </body>
@@ -100,8 +100,8 @@
                     'time': Date.now(),
                     'messagecolor': "#000000"
                 })
-                document.getElementById("bruhtton").innerText="Wyślij"
-                whileLoopMasterRace()
+                document.getElementById("sendButton").innerText="Wyślij"
+                whileLoop()
             }
         }
         document.getElementById("inputarea").value = ''
@@ -131,10 +131,10 @@
     document.getElementById("inputarea").addEventListener("keypress", function(event){
         if(event.keyCode === 13){
             event.preventDefault();
-            document.getElementById("bruhtton").click();
+            document.getElementById("sendButton").click();
         }
     })
-    async function whileLoopMasterRace(){
+    async function whileLoop(){
         while(nick){
             let response = await request("/poll", "POST", newestMessage)
             console.log("response: ", response)
